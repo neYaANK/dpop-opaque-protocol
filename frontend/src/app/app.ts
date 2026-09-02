@@ -1,7 +1,7 @@
 import { Component, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { OpaqueService, RegisterResult, LoginResult } from './services/opaque';
+import { OpaqueService, RegisterResult, LoginResult, LogEntry } from './services/opaque';
 
 @Component({
   selector: 'app-root',
@@ -19,12 +19,24 @@ export class App {
   successMessage = signal<string | null>(null);
   lastResult = signal<RegisterResult | LoginResult | null>(null);
 
-  constructor(private opaqueService: OpaqueService) {}
+  get logs() {
+    return this.opaqueService.logs;
+  }
+
+  constructor(public opaqueService: OpaqueService) {}
 
   switchMode(newMode: 'login' | 'register') {
     this.mode.set(newMode);
     this.errorMessage.set(null);
     this.successMessage.set(null);
+  }
+
+  clearLogs() {
+    this.opaqueService.clearLogs();
+  }
+
+  asJson(obj: any): string {
+    return JSON.stringify(obj, null, 2);
   }
 
   async onSubmit() {
