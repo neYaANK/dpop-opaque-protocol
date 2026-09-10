@@ -1,0 +1,77 @@
+<nav>
+  <button
+    type="button"
+    [class.active]="mode() === 'login'"
+    (click)="switchMode('login')"
+  >
+    Login
+  </button>
+  <button
+    type="button"
+    [class.active]="mode() === 'register'"
+    (click)="switchMode('register')"
+  >
+    Register
+  </button>
+</nav>
+
+<form (ngSubmit)="onSubmit()">
+  <label>
+    Username
+    <input
+      type="text"
+      [ngModel]="username()"
+      (ngModelChange)="username.set($event)"
+      name="username"
+      autocomplete="username"
+      [disabled]="isLoading()"
+      required
+    />
+  </label>
+
+  <label>
+    Password
+    <input
+      type="password"
+      [ngModel]="password()"
+      (ngModelChange)="password.set($event)"
+      name="password"
+      autocomplete="current-password"
+      [disabled]="isLoading()"
+      required
+    />
+  </label>
+
+  <button type="submit" [disabled]="isLoading()">
+    {{ isLoading() ? 'Loading...' : (mode() === 'login' ? 'Login' : 'Register') }}
+  </button>
+</form>
+
+@if (errorMessage()) {
+  <p class="error">{{ errorMessage() }}</p>
+}
+
+@if (successMessage()) {
+  <p class="success">{{ successMessage() }}</p>
+}
+
+@if (lastResult(); as res) {
+  <div class="result">
+    <div class="result-title">Result</div>
+    @if (res.sessionKey) {
+      <div><strong>Session Key:</strong> <code>{{ res.sessionKey }}</code></div>
+    }
+    @if (res.exportKey) {
+      <div><strong>Export Key (E2EE):</strong> <code>{{ res.exportKey }}</code></div>
+    }
+    @if (res.accessToken) {
+      <div><strong>DPoP Access Token:</strong> <code>{{ res.accessToken }}</code></div>
+    }
+    @if (res.dpopThumbprint) {
+      <div><strong>Bound Public Key JKT:</strong> <code>{{ res.dpopThumbprint }}</code></div>
+    }
+    @if (res.serverStaticPublicKey) {
+      <div><strong>Server Public Key:</strong> <code>{{ res.serverStaticPublicKey }}</code></div>
+    }
+  </div>
+}

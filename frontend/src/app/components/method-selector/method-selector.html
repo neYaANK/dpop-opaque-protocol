@@ -1,0 +1,19 @@
+<h2>Security Provider</h2>
+
+<div class="method-selector">
+  @for (method of availableMethods; track method.id) {
+    <button
+      type="button"
+      class="method-btn"
+      [class.active]="selectedMethod === method.id"
+      (click)="onSelectMethod(method.id)"
+    >
+      <span class="method-name">{{ method.name }}</span>
+    </button>
+  }
+</div>
+
+<div class="method-banner">
+  <strong>{{ currentStrategy.name }}</strong>
+  <p>{{ currentStrategy.description }}</p>
+</div>

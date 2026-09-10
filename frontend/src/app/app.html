@@ -1,111 +1,11 @@
 <div class="layout">
   <main class="auth-panel">
-    <h2>Auth</h2>
-
-    <nav>
-      <button
-        type="button"
-        [class.active]="mode() === 'login'"
-        (click)="switchMode('login')"
-      >
-        Login
-      </button>
-      <button
-        type="button"
-        [class.active]="mode() === 'register'"
-        (click)="switchMode('register')"
-      >
-        Register
-      </button>
-    </nav>
-
-    <form (ngSubmit)="onSubmit()">
-      <label>
-        Username
-        <input
-          type="text"
-          [ngModel]="username()"
-          (ngModelChange)="username.set($event)"
-          name="username"
-          autocomplete="username"
-          [disabled]="isLoading()"
-          required
-        />
-      </label>
-
-      <label>
-        Password
-        <input
-          type="password"
-          [ngModel]="password()"
-          (ngModelChange)="password.set($event)"
-          name="password"
-          autocomplete="current-password"
-          [disabled]="isLoading()"
-          required
-        />
-      </label>
-
-      <button type="submit" [disabled]="isLoading()">
-        {{ isLoading() ? 'Loading...' : (mode() === 'login' ? 'Login' : 'Register') }}
-      </button>
-    </form>
-
-    @if (errorMessage()) {
-      <p class="error">{{ errorMessage() }}</p>
-    }
-
-    @if (successMessage()) {
-      <p class="success">{{ successMessage() }}</p>
-    }
-
-    @if (lastResult(); as res) {
-      <div class="result">
-        @if ('sessionKey' in res) {
-          <div><strong>Session Key:</strong> <code>{{ res.sessionKey }}</code></div>
-        }
-        @if ('exportKey' in res) {
-          <div><strong>Export Key:</strong> <code>{{ res.exportKey }}</code></div>
-        }
-        @if ('serverStaticPublicKey' in res) {
-          <div><strong>Server Public Key:</strong> <code>{{ res.serverStaticPublicKey }}</code></div>
-        }
-      </div>
-    }
+    <app-method-selector />
+    <app-auth-form />
+    <app-protected-tester />
   </main>
 
-  <aside class="inspector-panel">
-    <div class="inspector-header">
-      <h3>Inspector</h3>
-      <button type="button" class="clear-btn" (click)="clearLogs()" [disabled]="logs().length === 0">
-        Clear
-      </button>
-    </div>
-
-    @if (logs().length === 0) {
-      <div class="empty-logs">
-        <p>Real-time messages will appear here: client calls, network requests, responses, and server computation.</p>
-        <small>Perform a registration or login to view the message flow.</small>
-      </div>
-    } @else {
-      <div class="logs-list">
-        @for (log of logs(); track log.id) {
-          <div class="log-card" [class]="'status-' + log.status">
-            <div class="log-meta">
-              <span class="actor-badge" [class]="'actor-' + log.actor.toLowerCase()">{{ log.actor }}</span>
-              <span class="step-title">{{ log.step }}</span>
-              <span class="time">{{ log.time }}</span>
-            </div>
-            <p class="description">{{ log.description }}</p>
-
-            @if (log.details && (log.details | json) !== '{}') {
-              <details>
-                <pre><code>{{ asJson(log.details) }}</code></pre>
-              </details>
-            }
-          </div>
-        }
-      </div>
-    }
-  </aside>
+  <app-protocol-inspector />
 </div>
+
+

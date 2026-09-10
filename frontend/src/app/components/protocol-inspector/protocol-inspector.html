@@ -1,0 +1,35 @@
+<aside class="inspector-panel">
+  <div class="inspector-header">
+    <h3>Protocol Inspector</h3>
+    <button type="button" class="clear-btn" (click)="clearLogs()" [disabled]="logs().length === 0">
+      Clear
+    </button>
+  </div>
+
+  @if (logs().length === 0) {
+    <div class="empty-logs">
+      <p>Real-time security messages will appear here.</p>
+      <small>Select a method, perform registration/login, or test protected requests.</small>
+    </div>
+  } @else {
+    <div class="logs-list">
+      @for (log of logs(); track log.id) {
+        <div class="log-card" [class]="'status-' + log.status">
+          <div class="log-meta">
+            <span class="actor-badge" [class]="'actor-' + log.actor.toLowerCase()">{{ log.actor }}</span>
+            <span class="step-title">{{ log.step }}</span>
+            <span class="time">{{ log.time }}</span>
+          </div>
+          <p class="description">{{ log.description }}</p>
+
+          @if (log.details && (log.details | json) !== '{}') {
+            <details>
+              <summary>View payload / cryptographic keys</summary>
+              <pre><code>{{ asJson(log.details) }}</code></pre>
+            </details>
+          }
+        </div>
+      }
+    </div>
+  }
+</aside>

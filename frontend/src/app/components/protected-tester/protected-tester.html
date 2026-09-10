@@ -1,0 +1,39 @@
+<div class="protected-section">
+  <h3>Protected Endpoint Tests</h3>
+  <div class="protected-actions">
+    <button
+      type="button"
+      class="test-btn get-btn"
+      [disabled]="isTestingProtected()"
+      (click)="onTestProtectedGet()"
+    >
+      {{ isTestingProtected() ? 'Testing...' : 'Test Protected GET' }}
+    </button>
+    <button
+      type="button"
+      class="test-btn post-btn"
+      [disabled]="isTestingProtected()"
+      (click)="onTestProtectedPost()"
+    >
+      {{ isTestingProtected() ? 'Testing...' : 'Test Protected POST' }}
+    </button>
+  </div>
+
+  @if (protectedErrorMessage()) {
+    <p class="error">{{ protectedErrorMessage() }}</p>
+  }
+
+  @if (protectedResult(); as pRes) {
+    <div class="protected-result">
+      <div class="protected-header">
+        <span class="status-badge" [class.badge-get]="pRes.type === 'GET'" [class.badge-post]="pRes.type === 'POST'">
+          {{ pRes.type }}
+        </span>
+        <strong>{{ pRes.method }}</strong>
+        <span class="timestamp">{{ pRes.timestamp | date:'mediumTime' }}</span>
+      </div>
+      <p class="res-msg">{{ pRes.message }}</p>
+      <pre><code>{{ asJson(pRes) }}</code></pre>
+    </div>
+  }
+</div>

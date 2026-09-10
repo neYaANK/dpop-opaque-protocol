@@ -1,0 +1,113 @@
+.protected-section {
+  margin-top: 1.5rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid #e2e8f0;
+}
+
+h3 {
+  margin: 0 0 0.75rem 0;
+  font-size: 0.95rem;
+  color: #334155;
+}
+
+.protected-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.test-btn {
+  flex: 1;
+  padding: 0.5rem 0.6rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.get-btn {
+  background: #ecfdf5;
+  color: #065f46;
+  border-color: #a7f3d0;
+}
+
+.get-btn:hover:not(:disabled) {
+  background: #d1fae5;
+}
+
+.post-btn {
+  background: #eff6ff;
+  color: #1e40af;
+  border-color: #bfdbfe;
+}
+
+.post-btn:hover:not(:disabled) {
+  background: #dbeafe;
+}
+
+.test-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.error {
+  color: #c00;
+  margin-top: 0.75rem;
+  font-size: 0.85rem;
+}
+
+.protected-result {
+  margin-top: 0.75rem;
+  padding: 0.75rem;
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  font-size: 0.8rem;
+}
+
+.protected-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.35rem;
+}
+
+.status-badge {
+  font-size: 0.65rem;
+  font-weight: bold;
+  padding: 0.1rem 0.35rem;
+  border-radius: 3px;
+}
+
+.badge-get {
+  background: #10b981;
+  color: #fff;
+}
+
+.badge-post {
+  background: #3b82f6;
+  color: #fff;
+}
+
+.timestamp {
+  margin-left: auto;
+  font-size: 0.75rem;
+  color: #94a3b8;
+}
+
+.res-msg {
+  margin: 0.25rem 0 0.5rem 0;
+  color: #334155;
+}
+
+pre {
+  margin: 0.5rem 0 0 0;
+  padding: 0.5rem;
+  background: #272822;
+  color: #f8f8f2;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  overflow-x: auto;
+  max-height: 180px;
+}

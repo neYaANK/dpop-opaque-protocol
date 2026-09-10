@@ -3,8 +3,9 @@ import path from 'node:path';
 
 const DB_FILE = path.join(process.cwd(), 'users.json');
 
-interface UserRecord {
-  registrationRecord: string;
+export interface UserRecord {
+  registrationRecord?: string;
+  passwordHash?: string;
 }
 
 class SimpleDB {
