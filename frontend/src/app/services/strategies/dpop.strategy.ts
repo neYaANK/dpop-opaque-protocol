@@ -3,7 +3,16 @@ import { HttpClient } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { AuthStrategy } from '../auth-strategy.interface';
-import { AuthResult, ProtectedResponse } from '../auth.types';
+import {
+  AuthResult,
+  ProtectedResponse,
+  DPoPRegisterRequest,
+  DPoPRegisterResponse,
+  DPoPLoginRequest,
+  DPoPLoginResponse,
+  DPoPProtectedGetResponse,
+  DPoPProtectedPostResponse,
+} from '../auth.types';
 import { ProtocolLoggerService } from '../logger.service';
 
 function base64UrlEncode(buffer: ArrayBuffer | Uint8Array | string): string {
@@ -17,7 +26,7 @@ function base64UrlEncode(buffer: ArrayBuffer | Uint8Array | string): string {
     }
     str = btoa(str);
   }
-  return str.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  return str.replace('+', '-').replace('/', '_').replace('=', '');
 }
 
 function base64UrlDecodeJson(b64url: string): any {
@@ -47,17 +56,16 @@ export class DPoPStrategy implements AuthStrategy {
   readonly description =
     'Demonstrating Proof-of-Possession. Access tokens are bound to client.';
 
-  private readonly API_BASE = environment.apiUrl.replace(/\/auth$/, '');
-  private readonly DPOP_AUTH_URL = `${this.API_BASE}/dpop`;
-  private readonly PROTECTED_URL = `${this.API_BASE}/protected/dpop/data`;
+  private readonly BASE_URL = `${environment.apiUrl}/dpop`;
+  private readonly REGISTER_URL = `${this.BASE_URL}/register`;
+  private readonly LOGIN_URL = `${this.BASE_URL}/login`;
+  private readonly PROTECTED_URL = `${this.BASE_URL}/protected/data`;
 
   private keyPair: CryptoKeyPair | null = null;
   private jwk: any | null = null;
-  private jkt: string | null = null;
 
   readonly activeToken = signal<string | null>(null);
   readonly activeUsername = signal<string | null>(null);
-  readonly activeThumbprint = signal<string | null>(null);
 
   constructor(
     private http: HttpClient,
@@ -67,15 +75,13 @@ export class DPoPStrategy implements AuthStrategy {
   reset() {
     this.keyPair = null;
     this.jwk = null;
-    this.jkt = null;
     this.activeToken.set(null);
     this.activeUsername.set(null);
-    this.activeThumbprint.set(null);
   }
 
-  private async ensureKeyPair(): Promise<{ keyPair: CryptoKeyPair; jwk: any; jkt: string }> {
-    if (this.keyPair && this.jwk && this.jkt) {
-      return { keyPair: this.keyPair, jwk: this.jwk, jkt: this.jkt };
+  private async ensureKeyPair(): Promise<{ keyPair: CryptoKeyPair; jwk: any; }> {
+    if (this.keyPair && this.jwk ) {
+      return { keyPair: this.keyPair, jwk: this.jwk};
     }
 
     this.logger.addLog({
@@ -97,21 +103,20 @@ export class DPoPStrategy implements AuthStrategy {
 
     this.keyPair = keyPair;
     this.jwk = jwk;
-    this.jkt = jkt;
-    this.activeThumbprint.set(jkt);
+  
 
     this.logger.addLog({
       actor: 'Client',
       step: 'WebCrypto: Public JWK & Thumbprint (JKT)',
       description: 'Exported public JWK and calculated canonical SHA-256 thumbprint (jkt).',
-      details: { jwk, jkt },
+      crypto: { publicJwk: jwk, calculatedJktThumbprint: jkt },
       status: 'info',
     });
 
-    return { keyPair, jwk, jkt };
+    return { keyPair, jwk};
   }
 
-  private async createDPoPProof(method: string, url: string): Promise<string> {
+  private async createDPoPProof(method: string, url: string, accessToken?: string): Promise<string> {
     const { keyPair, jwk } = await this.ensureKeyPair();
 
     const header = {
@@ -120,12 +125,17 @@ export class DPoPStrategy implements AuthStrategy {
       jwk,
     };
 
-    const payload = {
+    const payload: any = {
       jti: crypto.randomUUID(),
       htm: method.toUpperCase(),
       htu: url,
       iat: Math.floor(Date.now() / 1000),
     };
+
+    if (accessToken) {
+      const hashBuffer = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(accessToken));
+      payload.ath = base64UrlEncode(hashBuffer);
+    }
 
     const headerB64 = base64UrlEncode(JSON.stringify(header));
     const payloadB64 = base64UrlEncode(JSON.stringify(payload));
@@ -142,27 +152,25 @@ export class DPoPStrategy implements AuthStrategy {
   }
 
   async register(username: string, password: string): Promise<AuthResult> {
+    const payload: DPoPRegisterRequest = { username, password };
     this.logger.addLog({
-      actor: 'Client',
-      step: '1. Register with DPoP Credentials',
+      actor: 'Network',
+      step: '1. POST /api/dpop/register',
       description: 'Client sends registration credentials to DPoP register endpoint.',
-      details: { url: `${this.DPOP_AUTH_URL}/register`, username },
+      body: payload,
       status: 'info',
     });
 
     try {
       const response = await firstValueFrom(
-        this.http.post<{ success: boolean; message: string }>(`${this.DPOP_AUTH_URL}/register`, {
-          username,
-          password,
-        })
+        this.http.post<DPoPRegisterResponse>(this.REGISTER_URL, payload)
       );
 
       this.logger.addLog({
         actor: 'Server',
-        step: '2. DPoP Registration Succeeded',
+        step: '2. Response from /api/dpop/register',
         description: 'Server registered user credentials for DPoP authentication.',
-        details: response,
+        body: response,
         status: 'success',
       });
 
@@ -183,57 +191,68 @@ export class DPoPStrategy implements AuthStrategy {
   }
 
   async login(username: string, password: string): Promise<AuthResult> {
-    const loginUrl = `${this.DPOP_AUTH_URL}/login`;
-    const dpopProof = await this.createDPoPProof('POST', loginUrl);
+    const dpopProof = await this.createDPoPProof('POST', this.LOGIN_URL);
 
     this.logger.addLog({
       actor: 'Client',
-      step: '1. Generate DPoP Login Proof',
+      step: '1. Generate DPoP Login Proof (JWT)',
       description: 'Client signed a DPoP proof JWT with private ECDSA key for login request.',
-      details: { dpopProofHeader: dpopProof.split('.')[0], dpopProofPayload: base64UrlDecodeJson(dpopProof.split('.')[1]) },
+      crypto: {
+        dpopProofJwtHeader: base64UrlDecodeJson(dpopProof.split('.')[0]),
+        dpopProofJwtPayload: base64UrlDecodeJson(dpopProof.split('.')[1]),
+        rawDPoPProof: dpopProof,
+      },
       status: 'info',
     });
 
+    const payload: DPoPLoginRequest = { username, password };
     this.logger.addLog({
       actor: 'Network',
       step: '2. POST /api/dpop/login with DPoP Header',
-      description: 'Client sends username, password, and DPoP proof header to server.',
-      details: { url: loginUrl, headers: { DPoP: dpopProof } },
+      description: 'Client sends credentials and DPoP proof header to server.',
+      headers: {
+        'DPoP': dpopProof,
+      },
+      body: payload,
       status: 'info',
     });
 
     try {
       const response = await firstValueFrom(
-        this.http.post<{
-          success: boolean;
-          message: string;
-          username: string;
-          accessToken: string;
-          dpopThumbprint: string;
-        }>(
-          loginUrl,
-          { username, password },
+        this.http.post<DPoPLoginResponse>(
+          this.LOGIN_URL,
+          payload,
           { headers: { DPoP: dpopProof } }
         )
       );
 
+      const decodedToken = base64UrlDecodeJson(response.accessToken.split('.')[1]);
+
       this.logger.addLog({
         actor: 'Server',
         step: '3. DPoP Login Verified',
-        description: 'Server validated credentials and DPoP signature. Issued access token bound to public key thumbprint!',
-        details: response,
+        description: 'Server validated credentials and DPoP signature. Issued access token with embedded cnf.jkt!',
+        body: response,
+        crypto: {
+          issuedAccessToken: response.accessToken,
+          decodedTokenPayload: decodedToken,
+          embeddedCnfJkt: decodedToken?.cnf?.jkt,
+        },
         status: 'success',
       });
 
       this.activeToken.set(response.accessToken);
       this.activeUsername.set(response.username);
 
+      const { jwk } = await this.ensureKeyPair();
+      const jkt = await computeJkt(jwk);
+
       return {
         success: response.success,
         message: response.message,
         username: response.username,
         accessToken: response.accessToken,
-        dpopThumbprint: response.dpopThumbprint,
+        dpopThumbprint: jkt,
       };
     } catch (err: any) {
       this.logger.addLog({
@@ -247,25 +266,40 @@ export class DPoPStrategy implements AuthStrategy {
     }
   }
 
-  async testProtectedGet(): Promise<ProtectedResponse> {
+  async testProtectedGet(): Promise<DPoPProtectedGetResponse> {
     const token = this.activeToken();
     if (!token) {
       throw new Error('Please login first using DPoP to obtain a bound access token.');
     }
 
-    const dpopProof = await this.createDPoPProof('GET', this.PROTECTED_URL);
+    const dpopProof = await this.createDPoPProof('GET', this.PROTECTED_URL, token);
 
     this.logger.addLog({
       actor: 'Client',
-      step: 'Generate DPoP Proof for GET',
-      description: 'Client created fresh DPoP proof for protected GET endpoint.',
-      details: { url: this.PROTECTED_URL, dpopProof },
+      step: '1. Generate DPoP Proof for Protected GET',
+      description: 'Client signed a fresh single-use DPoP proof JWT with ath claim for GET endpoint.',
+      crypto: {
+        dpopProofJwtHeader: base64UrlDecodeJson(dpopProof.split('.')[0]),
+        dpopProofJwtPayload: base64UrlDecodeJson(dpopProof.split('.')[1]),
+        rawDPoPProof: dpopProof,
+      },
+      status: 'info',
+    });
+
+    this.logger.addLog({
+      actor: 'Network',
+      step: '2. GET /api/dpop/protected/data with Headers',
+      description: 'Client sends Authorization and DPoP headers.',
+      headers: {
+        'Authorization': `DPoP ${token}`,
+        'DPoP': dpopProof,
+      },
       status: 'info',
     });
 
     try {
       const response = await firstValueFrom(
-        this.http.get<ProtectedResponse>(this.PROTECTED_URL, {
+        this.http.get<DPoPProtectedGetResponse>(this.PROTECTED_URL, {
           headers: {
             Authorization: `DPoP ${token}`,
             DPoP: dpopProof,
@@ -275,9 +309,8 @@ export class DPoPStrategy implements AuthStrategy {
 
       this.logger.addLog({
         actor: 'Server',
-        step: 'Protected GET Response (DPoP)',
-        description: 'Server verified Proof-of-Possession against bound key and granted access.',
-        details: response,
+        step: '3. Protected GET Response',
+        description: 'Server verified Proof-of-Possession signature and thumbprint match. Access granted!',
         status: 'success',
       });
 
@@ -285,7 +318,7 @@ export class DPoPStrategy implements AuthStrategy {
     } catch (err: any) {
       this.logger.addLog({
         actor: 'Server',
-        step: 'Protected GET Failed (DPoP)',
+        step: 'Protected GET Failed',
         description: `Server rejected DPoP request: ${err?.error?.error || err.message}`,
         details: err?.error || { message: err.message },
         status: 'error',
@@ -294,25 +327,40 @@ export class DPoPStrategy implements AuthStrategy {
     }
   }
 
-  async testProtectedPost(payload: any): Promise<ProtectedResponse> {
+  async testProtectedPost(payload: any): Promise<DPoPProtectedPostResponse> {
     const token = this.activeToken();
     if (!token) {
       throw new Error('Please login first using DPoP to obtain a bound access token.');
     }
 
-    const dpopProof = await this.createDPoPProof('POST', this.PROTECTED_URL);
+    const dpopProof = await this.createDPoPProof('POST', this.PROTECTED_URL, token);
 
     this.logger.addLog({
       actor: 'Client',
-      step: 'Generate DPoP Proof for POST',
-      description: 'Client created fresh DPoP proof for protected POST endpoint.',
-      details: { url: this.PROTECTED_URL, dpopProof, payload },
+      step: '1. Generate DPoP Proof for Protected POST',
+      description: 'Client signed a fresh single-use DPoP proof JWT with ath claim for POST endpoint.',
+      crypto: {
+        dpopProofJwtHeader: base64UrlDecodeJson(dpopProof.split('.')[0]),
+        dpopProofJwtPayload: base64UrlDecodeJson(dpopProof.split('.')[1]),
+        rawDPoPProof: dpopProof,
+      },
+      status: 'info',
+    });
+
+    this.logger.addLog({
+      actor: 'Network',
+      step: '2. POST /api/dpop/protected/data with Headers',
+      description: 'Client sends Authorization and DPoP proof headers.',
+      headers: {
+        'Authorization': `DPoP ${token}`,
+        'DPoP': dpopProof,
+      },
       status: 'info',
     });
 
     try {
       const response = await firstValueFrom(
-        this.http.post<ProtectedResponse>(this.PROTECTED_URL, payload, {
+        this.http.post<DPoPProtectedPostResponse>(this.PROTECTED_URL, payload, {
           headers: {
             Authorization: `DPoP ${token}`,
             DPoP: dpopProof,
@@ -322,9 +370,8 @@ export class DPoPStrategy implements AuthStrategy {
 
       this.logger.addLog({
         actor: 'Server',
-        step: 'Protected POST Response (DPoP)',
+        step: '3. Protected POST Response',
         description: 'Server verified Proof-of-Possession and processed POST data successfully.',
-        details: response,
         status: 'success',
       });
 
@@ -332,7 +379,7 @@ export class DPoPStrategy implements AuthStrategy {
     } catch (err: any) {
       this.logger.addLog({
         actor: 'Server',
-        step: 'Protected POST Failed (DPoP)',
+        step: 'Protected POST Failed',
         description: `Server rejected DPoP POST request: ${err?.error?.error || err.message}`,
         details: err?.error || { message: err.message },
         status: 'error',
@@ -341,3 +388,4 @@ export class DPoPStrategy implements AuthStrategy {
     }
   }
 }
+

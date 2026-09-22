@@ -45,5 +45,6 @@ Thumbs.db
 /node_modules
 */node_modules
 backend/.server-setup
+backend/.jwt-secret
 backend/users.json
 info.md

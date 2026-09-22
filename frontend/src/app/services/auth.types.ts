@@ -6,6 +6,9 @@ export interface LogEntry {
   actor: 'Client' | 'Server' | 'Network';
   step: string;
   description: string;
+  headers?: Record<string, string>;
+  body?: any;
+  crypto?: Record<string, any>;
   details?: Record<string, any>;
   status: 'info' | 'success' | 'error';
 }
@@ -31,6 +34,8 @@ export interface ProtectedResponse {
   timestamp?: string;
   secretData?: Record<string, any>;
   receivedPayload?: any;
-  dpopThumbprint?: string;
   [key: string]: any;
 }
+
+export * from './types';
+

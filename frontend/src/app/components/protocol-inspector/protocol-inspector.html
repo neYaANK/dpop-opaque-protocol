@@ -22,11 +22,47 @@
           </div>
           <p class="description">{{ log.description }}</p>
 
-          @if (log.details && (log.details | json) !== '{}') {
-            <details>
-              <summary>View payload / cryptographic keys</summary>
-              <pre><code>{{ asJson(log.details) }}</code></pre>
-            </details>
+          @if (log.headers && hasKeys(log.headers)) {
+            <div class="log-section">
+              <details>
+                <summary>HTTP Headers</summary>
+                <div class="headers-table">
+                  @for (header of getHeaderEntries(log.headers); track header.key) {
+                    <div class="header-item">
+                      <span class="header-name">{{ header.key }}:</span>
+                      <span class="header-val"><code>{{ header.value }}</code></span>
+                    </div>
+                  }
+                </div>
+              </details>
+            </div>
+          }
+
+          @if (log.body !== undefined && log.body !== null && hasKeys(log.body)) {
+            <div class="log-section">
+              <details>
+                <summary>HTTP Body</summary>
+                <pre><code>{{ asJson(log.body) }}</code></pre>
+              </details>
+            </div>
+          }
+
+          @if (log.crypto && hasKeys(log.crypto)) {
+            <div class="log-section">
+              <details>
+                <summary>Cryptographic Details & Keys</summary>
+                <pre><code>{{ asJson(log.crypto) }}</code></pre>
+              </details>
+            </div>
+          }
+
+          @if (log.details && hasKeys(log.details)) {
+            <div class="log-section">
+              <details>
+                <summary>Additional Details</summary>
+                <pre><code>{{ asJson(log.details) }}</code></pre>
+              </details>
+            </div>
           }
         </div>
       }

@@ -59,16 +59,16 @@
   <div class="result">
     <div class="result-title">Result</div>
     @if (res.sessionKey) {
-      <div><strong>Session Key:</strong> <code>{{ res.sessionKey }}</code></div>
+      <div><strong>Client Session Key (OPAQUE):</strong> <code>{{ res.sessionKey }}</code></div>
     }
     @if (res.exportKey) {
       <div><strong>Export Key (E2EE):</strong> <code>{{ res.exportKey }}</code></div>
     }
     @if (res.accessToken) {
-      <div><strong>DPoP Access Token:</strong> <code>{{ res.accessToken }}</code></div>
+      <div><strong>Access Token (JWT):</strong> <code>{{ res.accessToken }}</code></div>
     }
     @if (res.dpopThumbprint) {
-      <div><strong>Bound Public Key JKT:</strong> <code>{{ res.dpopThumbprint }}</code></div>
+      <div><strong>Client Public Key JKT:</strong> <code>{{ res.dpopThumbprint }}</code></div>
     }
     @if (res.serverStaticPublicKey) {
       <div><strong>Server Public Key:</strong> <code>{{ res.serverStaticPublicKey }}</code></div>

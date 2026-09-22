@@ -23,4 +23,13 @@ export class ProtocolInspectorComponent {
   asJson(obj: any): string {
     return JSON.stringify(obj, null, 2);
   }
+
+  hasKeys(obj: any): boolean {
+    return !!obj && typeof obj === 'object' && Object.keys(obj).length > 0;
+  }
+
+  getHeaderEntries(headers?: Record<string, string>): { key: string; value: string }[] {
+    if (!headers) return [];
+    return Object.entries(headers).map(([key, value]) => ({ key, value }));
+  }
 }
