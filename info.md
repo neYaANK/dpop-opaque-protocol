@@ -159,3 +159,50 @@ The same as the normal OPAQUE flow (user envelope is stored)
 7. Server mints an access token with JKT embedded inside of it and returns it to the client.
 ## Accessing resources
 Same flow as with the default DPoP
+
+
+```mermaid
+---
+config:
+  theme: dark
+---
+sequenceDiagram
+    autonumber
+    actor Client
+    participant Server
+
+    rect rgb(84, 140, 138, 1)
+    Note over Client: CLIENT INIT
+    Note over Client: Generate asymmetric keypair (e.g. P-256):<br/>1. privateKey: kept non-extractable in WebCrypto<br/>2. publicKey: represented as JWK {kty: EC, crv: P-256, x: ..., y: ...}
+    end
+
+    rect rgb(84, 140, 138, 1)
+
+    Note over Client, Server: LOGIN FLOW
+
+Note over Client: 1. Point = HashToCurve(Password)<br/>2. Blinded = Random * Point<br/>3. Generate random ec, G - curve point <br/>4. EClient = ec * G
+    Client->>Server: Send (Blinded Point, EClient)
+    
+    Note over Server: 1. Evaluated = ServerKey * Blinded<br/>2. Generate random es, EServer = es * G<br/>3. Fetch User Envelope
+    
+    Note over Server: Compute 3DH:<br/>DH1 = es * EClient<br/>DH2 = es * publicClientKey<br/>DH3 = privateServerKey * EClient
+    Note over Server: Derive ClientMACKey, ServerMACKey, SessionKey <br/>with HKDF(DH1, DH2, DH3) 
+    Note over Server: ServerMAC = MAC(ServerMACKey, Transcript)
+    Server-->>Client: Return (Evaluated, EServer, Envelope, ServerMAC)
+
+    Note over Client: 1. Unblind OPRF_Result and derive SK<br/>2. privateClientKey = AES_Decrypt(SK, EncryptedPrivKey)<br/>3. Compute 3DH (Triple Diffie-Hellman):<br/>DH1 = ec * EServer<br/>DH2 = privateClientKey * EServer<br/>DH3 = ec * publicServerKey
+    Note over Client: Derive ClientMACKey, ServerMACKey, SessionKey <br/>with HKDF(DH1, DH2, DH3) 
+    Note over Client: Verify ServerMAC sent by server
+    Note over Client: ClientMAC = MAC(ClientMACKey, Transcript)
+
+    Note over Client: Build DPoP Proof<br/>Sign JWT using privateKey    
+    
+    Client->>Server: Send ClientMAC, Header: DPoP <DPoP_Proof_JWT>
+
+    Note over Server: Verify ClientMAC with local ClientMACKey
+    Note over Server: Validate Proof
+    Note over Server: Mint DPoP-Bound Access Token
+    Server-->>Client: Return { access_token: 'ey...', token_type: 'DPoP', expires_in: 3600 }
+    
+    end
+```
