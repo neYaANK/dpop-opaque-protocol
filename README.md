@@ -94,10 +94,6 @@ Note over Client: 1. Point = HashToCurve(Password)<br/>2. Blinded = Random * Poi
 
 
 ```mermaid
----
-config:
-  theme: dark
----
 sequenceDiagram
     autonumber
     actor Client
@@ -172,11 +168,6 @@ G - specification constant point at elliptic curve
 10. Both Client and Server proofed that they calculated correct keys. Now Session key is considered valid and can be used for communication.
 
 ```mermaid
-
----
-config:
-  theme: dark
----
 sequenceDiagram
     autonumber
     actor Client
