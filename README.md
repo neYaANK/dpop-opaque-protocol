@@ -30,23 +30,37 @@ sequenceDiagram
     actor Client
     participant Server
 
-    rect rgb(84, 140, 138)
+    rect rgb(84, 140, 138, 1)
     Note over Client: CLIENT INIT
-    Note over Client: Generate asymmetric keypair (WebCrypto, non-extractable P-256):<br/>- privateKey: kept in browser memory<br/>- publicKey: represented as JWK
+    Note over Client: Generate asymmetric keypair (e.g. P-256):<br/>1. privateKey: kept non-extractable in WebCrypto<br/>2. publicKey: represented as JWK {kty: EC, crv: P-256, x: ..., y: ...}
     end
 
-    rect rgb(48, 48, 48)
-    Note over Client, Server: LOGIN ROUND 1 (START)
-    Note over Client: OPRF blinding: PwdPoint = HashToCurve(Password)<br/>Blinded = R * PwdPoint, EphemeralClient = ec * G
-    Client->>Server: POST /api/login/start (Blinded, EphemeralClient)
-    Note over Server: Evaluated = ServerKey * Blinded, EphemeralServer = es * G<br/>Compute 3DH & derive keys via HKDF<br/>ServerMAC = MAC(ServerMACKey, Transcript1)
-    Server-->>Client: HTTP 200 (Evaluated, EphemeralServer, Envelope, ServerMAC)
-    end
+    rect rgb(84, 140, 138, 1)
 
-    rect rgb(60, 60, 60)
-    Note over Client, Server: LOGIN ROUND 2 + DPoP BINDING (FINISH)
-    Note over Client: Unblind OPRF -> Recover SK -> Decrypt Envelope<br/>Compute 3DH & verify ServerMAC<br/>Compute ClientMAC = MAC(ClientMACKey, Transcript2)<br/>Sign DPoP-Proof JWT with privateKey (includes JWK in header)
-    Client->>Server: POST /api/login/finish<br/>Header: DPoP: <DPoP_Proof_JWT><br/>Body: { clientMac: ClientMAC }
-    Note over Server: Verify ClientMAC (User Authenticated)<br/>Validate DPoP-Proof signature using proof.header.jwk<br/>Calculate Thumbprint: JKT = Base64URL(SHA-256(canonical(jwk)))<br/>Mint JWT Access Token with cnf: { jkt: JKT }
-    Server-->>Client: HTTP 200 { access_token, token_type: "DPoP" }
+    Note over Client, Server: LOGIN FLOW
+
+Note over Client: 1. Point = HashToCurve(Password)<br/>2. Blinded = Random * Point<br/>3. Generate random ec, G - curve point <br/>4. EClient = ec * G
+    Client->>Server: Send (Blinded Point, EClient)
+    
+    Note over Server: 1. Evaluated = ServerKey * Blinded<br/>2. Generate random es, EServer = es * G<br/>3. Fetch User Envelope
+    
+    Note over Server: Compute 3DH:<br/>DH1 = es * EClient<br/>DH2 = es * publicClientKey<br/>DH3 = privateServerKey * EClient
+    Note over Server: Derive ClientMACKey, ServerMACKey, SessionKey <br/>with HKDF(DH1, DH2, DH3) 
+    Note over Server: ServerMAC = MAC(ServerMACKey, Transcript)
+    Server-->>Client: Return (Evaluated, EServer, Envelope, ServerMAC)
+
+    Note over Client: 1. Unblind OPRF_Result and derive SK<br/>2. privateClientKey = AES_Decrypt(SK, EncryptedPrivKey)<br/>3. Compute 3DH (Triple Diffie-Hellman):<br/>DH1 = ec * EServer<br/>DH2 = privateClientKey * EServer<br/>DH3 = ec * publicServerKey
+    Note over Client: Derive ClientMACKey, ServerMACKey, SessionKey <br/>with HKDF(DH1, DH2, DH3) 
+    Note over Client: Verify ServerMAC sent by server
+    Note over Client: ClientMAC = MAC(ClientMACKey, Transcript)
+
+    Note over Client: Build DPoP Proof<br/>Sign JWT using privateKey    
+    
+    Client->>Server: Send ClientMAC, Header: DPoP <DPoP_Proof_JWT>
+
+    Note over Server: Verify ClientMAC with local ClientMACKey
+    Note over Server: Validate Proof
+    Note over Server: Mint DPoP-Bound Access Token
+    Server-->>Client: Return { access_token: 'ey...', token_type: 'DPoP', expires_in: 3600 }
+    
     end
