@@ -31,7 +31,6 @@ This project demonstrates a zero-knowledge, password-authenticated architecture 
 During the final phase of OPAQUE authentication, the client completes the mutual handshake by computing the `ClientMAC` over the session transcript. Simultaneously, the client signs a DPoP Proof containing its public JWK. The server validates both the credentials and the proof, computes the canonical JWK Thumbprint (`cnf.jkt`), and issues a bound Access Token.
 
 ```mermaid
-
 sequenceDiagram
     autonumber
     actor Client
