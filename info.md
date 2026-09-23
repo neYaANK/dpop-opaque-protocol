@@ -152,7 +152,7 @@ The same as the normal OPAQUE flow (user envelope is stored)
 ## Login
 1. Same OPAQUE flow until ClientMAC verification (ServerMAC is already verified).
 2. Client creates JWT DPoP-Proof with JWK, signs it with private key.
-3. Client signs all previous communication with ClientMAC and sends it and DPoP Proof to the Server.
+3. Client signs all previous communication with ClientMACKey and sends it and DPoP Proof to the Server.
 4. Server verifies ClientMAC.
 5. Server reads public key and checks correctness of the DPoP-Proof Signature
 6. Server calculates JKT from obtained JWK
