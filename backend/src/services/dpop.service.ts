@@ -56,7 +56,10 @@ class DPoPService {
         return { valid: false, error: `DPoP htu mismatch (expected ${expectedUrlPath} in ${payload.htu})` };
       }
 
-      if (accessToken && payload.ath) {
+      if (accessToken) {
+        if (!payload.ath) {
+          return { valid: false, error: 'Missing DPoP ath claim' };
+        }
         const expectedAth = crypto.createHash('sha256').update(accessToken).digest('base64url');
         if (payload.ath !== expectedAth) {
           return { valid: false, error: 'DPoP ath mismatch (access token hash invalid)' };

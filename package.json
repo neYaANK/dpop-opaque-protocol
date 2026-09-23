@@ -1,0 +1,25 @@
+{
+  "name": "!bachelor",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "concurrently -n \"BACKEND,FRONTEND\" -c \"blue,green\" \"npm --prefix backend run dev\" \"npm --prefix frontend start\""
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/neYaANK/-BACHELOR.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/neYaANK/-BACHELOR/issues"
+  },
+  "homepage": "https://github.com/neYaANK/-BACHELOR#readme",
+  "devDependencies": {
+    "concurrently": "^10.0.5"
+  }
+}

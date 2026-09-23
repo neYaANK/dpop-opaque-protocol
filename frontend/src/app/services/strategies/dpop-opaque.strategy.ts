@@ -24,13 +24,13 @@ function base64UrlEncode(buffer: ArrayBuffer | Uint8Array | string): string {
   if (typeof buffer === 'string') {
     str = btoa(unescape(encodeURIComponent(buffer)));
   } else {
-    const bytes = new Uint8Array(buffer);
+    const bytes = buffer instanceof Uint8Array ? buffer : new Uint8Array(buffer);
     for (let i = 0; i < bytes.byteLength; i++) {
       str += String.fromCharCode(bytes[i]);
     }
     str = btoa(str);
   }
-  return str.replace('+', '-').replace('\\', '_').replace('=', '');
+  return str.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 }
 
 function base64UrlDecodeJson(b64url: string): any {
