@@ -1,26 +1,33 @@
 # OPAQUE + DPoP Proof of Concept (PoC)
 
-An integrated cryptographic authentication and authorization Proof of Concept combining the **OPAQUE protocol (RFC 9892)** with **Demonstrating Proof-of-Possession (DPoP, RFC 9449)** for modern single-page applications.
+An integrated cryptographic authentication and authorization Proof of Concept combining the **OPAQUE protocol (RFC 9892)** with **Demonstrating Proof-of-Possession (DPoP, RFC 9449)** for modern applications.
 
 Developed as part of a Bachelor's Thesis in Computer Science at TU Wien.
 
 ---
-
+## Start
+To start the application, run
+```
+cd dpop-opaque-protocol
+npm install
+npm start
+```
+---
 ## Overview
 
-Traditional Web applications often suffer from fundamental security tradeoffs:
-- Passwords sent over the network (even over TLS) or stored as hashes are susceptible to server-side database compromise, offline dictionary attacks, and credential stuffing.
+Traditional Web applications often suffer from fundamental security issues:
+- Passwords sent over the network as a clear text (even over TLS) or stored as hashes are susceptible to server-side database compromise, offline dictionary attacks, and credential stuffing.
 - Standard OAuth 2.0 Bearer tokens are bearer credentials: if intercepted via XSS, network eavesdropping, or server logging, an attacker can reuse them directly.
 
 This project demonstrates a zero-knowledge, password-authenticated architecture combined with cryptographically bound access tokens:
-1. **Asymmetric PAKE (OPAQUE):** The server never learns the user's password, and no password hashes are stored in the database. Client and server mutually authenticate each other using an Oblivious Pseudorandom Function (OPRF) and a 3-way Diffie-Hellman handshake (3DH).
-2. **Constrained Tokens (DPoP):** Upon successful OPAQUE login, the Server binds the minted JWT Access Token to a non-extractable asymmetric key generated via WebCrypto on the client. 
-3. **Protected Resource Access:** Every API request requires a short-lived, signed `DPoP-Proof` cross-bound to the access token (`ath`) and HTTP method/URI (`htm`, `htu`), preventing token hijacking and replay attacks.
+- **Asymmetric PAKE (OPAQUE):** The server never learns the user's password, and no password hashes are stored in the database. Client and server mutually authenticate each other using an Oblivious Pseudorandom Function (OPRF) and a 3-way Diffie-Hellman handshake (3DH).
+- **Constrained Tokens (DPoP):** Upon successful OPAQUE login, the Server binds the minted JWT Access Token to a non-extractable asymmetric key generated via WebCrypto on the client. 
+- **Protected Resource Access:** Every API request requires a short-lived, signed DPoP-Proof cross-bound to the access token and HTTP method/URI, preventing token hijacking and replay attacks.
 
 ---
 
 ### Integrated OPAQUE Login & DPoP Binding Flow
-During the final phase of OPAQUE authentication (`finishLogin`), the client completes the mutual handshake by computing the `ClientMAC` over the session transcript. Simultaneously, the client signs a DPoP Proof containing its public JWK. The server validates both the credentials and the proof, computes the canonical JWK Thumbprint (`cnf.jkt`), and issues a bound Access Token.
+During the final phase of OPAQUE authentication, the client completes the mutual handshake by computing the `ClientMAC` over the session transcript. Simultaneously, the client signs a DPoP Proof containing its public JWK. The server validates both the credentials and the proof, computes the canonical JWK Thumbprint (`cnf.jkt`), and issues a bound Access Token.
 
 ```mermaid
 sequenceDiagram
