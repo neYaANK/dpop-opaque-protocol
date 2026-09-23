@@ -6,6 +6,7 @@ Developed as part of a Bachelor's Thesis in Computer Science at TU Wien.
 
 ---
 ## Start
+![alt text](OPAQUE_DPOP_DEMO.png "Demo screenshot")
 To start the application, run
 ```
 cd dpop-opaque-protocol
