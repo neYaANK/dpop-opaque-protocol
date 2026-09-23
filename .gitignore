@@ -47,4 +47,3 @@ Thumbs.db
 backend/.server-setup
 backend/.jwt-secret
 backend/users.json
-info.md
