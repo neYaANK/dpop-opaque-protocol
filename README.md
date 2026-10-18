@@ -139,7 +139,7 @@ G - specification constant point at elliptic curve
 #### **OPRF**
 1. Client transforms password to a point at elliptic curve
 2. Then multiplies this point with random generated value R and sends to the server
-3. Server then multiplies the point with its key value (also randomly generated, but only once and is the same for all) and returns it to the client
+3. Server then multiplies the point with its private key value and returns it to the client
 4. Client reverses the multiplication with value R and obtains password multiplied with server key.
 
 #### **Registration:**
